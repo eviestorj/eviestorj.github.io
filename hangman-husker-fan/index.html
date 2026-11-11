@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Husker Hangman | Daily Nebraskan Games</title>
+<meta name="description" content="Save the Husker fan! Guess Nebraska and Daily Nebraskan news words before his gear turns Hawkeye and his balloon pops.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jost:wght@700;800&family=Open+Sans:wght@400;600;700&family=Roboto+Condensed:wght@700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="masthead">
+  <a class="wordmark" href="https://www.dailynebraskan.com/">The Daily Nebraskan</a>
+</header>
+<nav class="navbar" aria-label="Site">
+  <div class="wrap">
+    <a href="https://www.dailynebraskan.com/news/">News</a>
+    <a href="https://www.dailynebraskan.com/sports/">Sports</a>
+    <a href="https://www.dailynebraskan.com/culture/">Culture</a>
+    <a href="https://www.dailynebraskan.com/opinion/">Opinion</a>
+    <a href="./" aria-current="page">Games</a>
+  </div>
+</nav>
+
+<main class="wrap">
+  <h1 class="block-title">Husker Hangman</h1>
+  <p class="dek">Save the Husker fan! Every wrong letter turns one piece of his gear into Hawkeye gear. Lose all six and the balloon pops.</p>
+
+  <div class="game">
+    <section class="stage" aria-label="Husker fan">
+      <svg id="scene" viewBox="0 0 300 440" role="img" aria-labelledby="sceneTitle">
+        <title id="sceneTitle">A stick-figure Husker fan hanging from a red balloon</title>
+        <defs>
+          <pattern id="huskerStripes" width="8" height="8" patternUnits="userSpaceOnUse">
+            <rect width="8" height="8" fill="#fff"/><rect width="4" height="8" fill="#d00000"/>
+          </pattern>
+          <pattern id="hawkStripes" width="8" height="8" patternUnits="userSpaceOnUse">
+            <rect width="8" height="8" fill="#ffcd00"/><rect width="4" height="8" fill="#111"/>
+          </pattern>
+          <pattern id="kernels" width="5" height="5" patternUnits="userSpaceOnUse">
+            <rect width="5" height="5" fill="#f7d038"/><circle cx="2.5" cy="2.5" r="1.7" fill="#e4a900"/>
+          </pattern>
+        </defs>
+
+        <!-- ground: the traditional hangman base line -->
+        <line x1="24" y1="432" x2="276" y2="432" class="ink" stroke-width="4"/>
+
+        <g id="floater">
+          <!-- balloon -->
+          <g id="balloon">
+            <path d="M200 134 C188 150 206 162 186 182" fill="none" stroke="#222" stroke-width="1.5"/>
+            <ellipse cx="200" cy="78" rx="46" ry="56" fill="#d00000" stroke="#222" stroke-width="3"/>
+            <ellipse cx="184" cy="56" rx="9" ry="16" fill="#fff" opacity=".35" transform="rotate(20 184 56)"/>
+            <path d="M194 136 L206 136 L200 128 Z" fill="#d00000" stroke="#222" stroke-width="2" stroke-linejoin="round"/>
+          </g>
+          <g id="burst" class="hidden">
+            <path d="M200 30 L212 62 L246 52 L224 80 L250 104 L214 100 L206 134 L194 104 L160 116 L178 86 L150 62 L186 64 Z" fill="#ffcd00" stroke="#222" stroke-width="3" stroke-linejoin="round"/>
+            <text x="200" y="90" text-anchor="middle" class="pop-text">POP!</text>
+          </g>
+
+          <!-- the fan -->
+          <g id="fan">
+            <!-- stick limbs -->
+            <g class="ink limbs" fill="none" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M150 296 L138 336 L134 372"/>
+              <path d="M150 296 L162 336 L166 372"/>
+              <path d="M150 230 L150 296"/>
+              <path d="M150 240 L176 214 L186 182"/>
+              <path d="M150 240 L130 262 L124 284"/>
+            </g>
+            <circle cx="186" cy="182" r="4" class="hand"/>
+            <circle cx="124" cy="284" r="4" class="hand"/>
+
+            <!-- t-shirt -->
+            <g data-gear="shirt">
+              <g class="husker">
+                <path d="M136 236 L164 236 L166 282 L134 282 Z" fill="#d00000" class="outline"/>
+                <path d="M159 236 L169 223 L178 231 L165 245 Z" fill="#d00000" class="outline"/>
+                <path d="M141 236 L129 248 L136 255 L146 244 Z" fill="#d00000" class="outline"/>
+                <path d="M144 236 Q150 242 156 236" fill="none" stroke="#fff" stroke-width="2"/>
+              </g>
+              <g class="hawk">
+                <path d="M136 236 L164 236 L166 282 L134 282 Z" fill="#111" class="outline"/>
+                <path d="M159 236 L169 223 L178 231 L165 245 Z" fill="#111" class="outline"/>
+                <path d="M141 236 L129 248 L136 255 L146 244 Z" fill="#111" class="outline"/>
+                <path d="M144 236 Q150 242 156 236" fill="none" stroke="#ffcd00" stroke-width="2"/>
+                <path d="M171 239 L176 234 M131 250 L134 253" stroke="#ffcd00" stroke-width="2.5"/>
+              </g>
+            </g>
+
+            <!-- striped overalls -->
+            <g data-gear="overalls">
+              <g class="husker">
+                <path d="M143 252 L140 238 M157 252 L160 238" stroke="#d00000" stroke-width="4" stroke-linecap="round"/>
+                <rect x="141" y="250" width="18" height="24" fill="url(#huskerStripes)" class="outline"/>
+                <path d="M136 272 L164 272 L166 300 L172 352 L158 354 L151 312 L149 312 L142 354 L128 352 L134 300 Z" fill="url(#huskerStripes)" class="outline"/>
+                <circle cx="143.5" cy="254" r="1.8" fill="#222"/><circle cx="156.5" cy="254" r="1.8" fill="#222"/>
+              </g>
+              <g class="hawk">
+                <path d="M143 252 L140 238 M157 252 L160 238" stroke="#111" stroke-width="4" stroke-linecap="round"/>
+                <rect x="141" y="250" width="18" height="24" fill="url(#hawkStripes)" class="outline"/>
+                <path d="M136 272 L164 272 L166 300 L172 352 L158 354 L151 312 L149 312 L142 354 L128 352 L134 300 Z" fill="url(#hawkStripes)" class="outline"/>
+                <circle cx="143.5" cy="254" r="1.8" fill="#222"/><circle cx="156.5" cy="254" r="1.8" fill="#222"/>
+              </g>
+            </g>
+
+            <!-- shoes -->
+            <g data-gear="shoes">
+              <g class="husker">
+                <path d="M136 368 Q122 366 120 376 L138 376 Z" fill="#d00000" class="outline"/>
+                <path d="M164 368 Q178 366 180 376 L162 376 Z" fill="#d00000" class="outline"/>
+                <path d="M120 377 L138 377 M162 377 L180 377" stroke="#fff" stroke-width="2"/>
+              </g>
+              <g class="hawk">
+                <path d="M136 368 Q122 366 120 376 L138 376 Z" fill="#111" class="outline"/>
+                <path d="M164 368 Q178 366 180 376 L162 376 Z" fill="#111" class="outline"/>
+                <path d="M120 377 L138 377 M162 377 L180 377" stroke="#ffcd00" stroke-width="2"/>
+              </g>
+            </g>
+
+            <!-- clear stadium bag -->
+            <g data-gear="bag">
+              <path d="M114 296 Q124 276 134 296" fill="none" stroke="#555" stroke-width="2"/>
+              <rect x="104" y="294" width="40" height="34" rx="3" fill="rgba(190,225,255,.35)" stroke="#555" stroke-width="2"/>
+              <g class="husker">
+                <rect x="105" y="295" width="38" height="5" fill="#d00000"/>
+                <g fill="#d00000"><circle cx="118" cy="318" r="5"/><circle cx="124" cy="314" r="5"/><circle cx="128" cy="320" r="5"/></g>
+                <g fill="#fff" opacity=".8"><circle cx="122" cy="320" r="2.5"/></g>
+              </g>
+              <g class="hawk">
+                <rect x="105" y="295" width="38" height="5" fill="#111"/>
+                <g fill="#ffcd00" stroke="#111" stroke-width=".8"><circle cx="118" cy="318" r="5"/><circle cx="124" cy="314" r="5"/><circle cx="128" cy="320" r="5"/></g>
+              </g>
+            </g>
+
+            <!-- head -->
+            <circle cx="150" cy="212" r="18" fill="#fff" class="ink" stroke-width="3"/>
+            <g id="eyes" fill="#222"><circle cx="143" cy="209" r="2"/><circle cx="157" cy="209" r="2"/></g>
+            <g id="xeyes" class="hidden" stroke="#222" stroke-width="2" stroke-linecap="round">
+              <path d="M140 206 L146 212 M146 206 L140 212 M154 206 L160 212 M160 206 L154 212"/>
+            </g>
+            <path id="mouth" d="M143 220 Q150 226 157 220" fill="none" stroke="#222" stroke-width="2" stroke-linecap="round"/>
+
+            <!-- face paint -->
+            <g data-gear="paint" stroke-width="2.5" stroke-linecap="round">
+              <g class="husker"><path d="M135 213 L141 213 M135 217.5 L141 217.5 M159 213 L165 213 M159 217.5 L165 217.5" stroke="#d00000"/></g>
+              <g class="hawk">
+                <path d="M135 213 L141 213 M159 213 L165 213" stroke="#ffcd00"/>
+                <path d="M135 217.5 L141 217.5 M159 217.5 L165 217.5" stroke="#111"/>
+              </g>
+            </g>
+
+            <!-- hat -->
+            <g data-gear="hat">
+              <g class="husker">
+                <path d="M122 192 Q106 182 101 197 Q113 202 124 197 Z" fill="#4c9a2a" class="outline"/>
+                <path d="M178 192 Q194 182 199 197 Q187 202 176 197 Z" fill="#4c9a2a" class="outline"/>
+                <ellipse cx="150" cy="191" rx="30" ry="10.5" fill="url(#kernels)" stroke="#9a7400" stroke-width="2"/>
+              </g>
+              <g class="hawk">
+                <path d="M131 203 Q131 176 150 175 Q169 176 169 203 Z" fill="#111" class="outline"/>
+                <rect x="130" y="196" width="40" height="8" rx="2" fill="#ffcd00" class="outline"/>
+                <circle cx="150" cy="172" r="6" fill="#ffcd00" class="outline"/>
+              </g>
+            </g>
+          </g>
+        </g>
+      </svg>
+
+      <ol class="gear-list" id="gearList" aria-label="Gear status"></ol>
+    </section>
+
+    <section class="board" aria-label="Puzzle">
+      <div class="toolbar">
+        <label>Category
+          <select id="categorySelect"><option value="all">All categories</option></select>
+        </label>
+        <button type="button" id="newGameBtn" class="btn ghost">New word</button>
+      </div>
+
+      <p class="category-tag" id="categoryTag"></p>
+      <div class="phrase" id="phrase" aria-live="polite"></div>
+
+      <div class="hint-row">
+        <button type="button" id="hintBtn" class="link-btn">Show hint</button>
+        <p id="hint" class="hint hidden"></p>
+      </div>
+
+      <p class="misses">Misses: <b id="missCount">0</b> / 6 <span id="wrongLetters" class="wrong"></span></p>
+
+      <div class="keyboard" id="keyboard" aria-label="Letters"></div>
+
+      <div class="result hidden" id="result" role="status">
+        <h2 id="resultTitle"></h2>
+        <p id="resultText"></p>
+        <div class="result-actions">
+          <button type="button" id="playAgainBtn" class="btn">Play again</button>
+          <a class="btn ghost" href="https://www.dailynebraskan.com/news/">Read the news</a>
+        </div>
+      </div>
+
+      <dl class="stats">
+        <div><dt>Wins</dt><dd id="statWins">0</dd></div>
+        <div><dt>Losses</dt><dd id="statLosses">0</dd></div>
+        <div><dt>Streak</dt><dd id="statStreak">0</dd></div>
+      </dl>
+    </section>
+  </div>
+</main>
+
+<footer class="site-footer">
+  <p>Puzzles drawn from <a href="https://www.dailynebraskan.com/news/">Daily Nebraskan news coverage</a> and all things Nebraska. Go Big Red!</p>
+</footer>
+
+<script src="words.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
