@@ -219,6 +219,22 @@ button { font: inherit; color: inherit; }
   background: #fff; min-width: 0; width: min(320px, 100%);
 }
 .fact { font-size: .9rem; color: var(--ink-soft); margin-top: 14px; }
+.title-card .modal-actions { gap: 14px; }
+.title-card .fact { margin: 24px 0 0; padding-top: 14px; border-top: 3px dashed #e0cda4; }
+
+/* News explainer */
+.news {
+  margin-top: 14px;
+  background: #fffdf6; border: 3px solid var(--ink); border-radius: 18px; box-shadow: var(--shadow);
+  padding: 14px 18px; border-left: 12px solid var(--red);
+}
+.news h2 { font-size: 1.25rem; color: var(--red); margin-bottom: 6px; }
+.news p { margin: 0; font-weight: 600; line-height: 1.55; }
+.news .news-src { margin-top: 8px; font-size: .82rem; color: var(--ink-soft); }
+.news a { color: var(--red-dark); font-weight: 800; }
+.choice-btns { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-top: 12px; }
+.choice-btns .btn { flex-direction: column; align-items: flex-start; text-align: left; gap: 2px; padding: 12px 14px; }
+.choice-btns .btn small { font-weight: 700; font-size: .85rem; }
 
 .event-card { display: flex; gap: 14px; align-items: flex-start; background: var(--cream); border: 3px solid var(--ink); border-radius: 16px; padding: 12px 14px; margin: 10px 0; }
 .event-card .e-icon { font-size: 2.4rem; line-height: 1; }

@@ -28,7 +28,11 @@
   ];
 
   const PAYMENTS = [4000, 5000, 6000, 9000];
-  const DAILY_COST = 120;
+  // Input costs climb all year (fuel, equipment, labor) — faster than cattle prices.
+  const COSTS = [120, 135, 150, 170];
+  const HAY_PRICE = [80, 90, 100, 115];
+  const dailyCost = (s) => Math.round(COSTS[weekOf(s)] * (1 + 0.1 * (s.year - 1)));
+  const hayPrice = (s) => HAY_PRICE[weekOf(s)];
 
   const TASKS = {
     feed: { slots: ['dawn'], icon: '🚚', title: 'Feed the Herd', game: 'feed',
@@ -87,15 +91,21 @@
     { id: 'heat', w: [0, 0, 3, 0], icon: '🥵', title: 'Heat Wave',
       text: 'It\'s 102°F in the shade — if you can find any shade. The herd is drinking twice as much water.',
       apply: (s) => { s.water -= 20; s.grass -= 6; }, mods: { heat: true } },
-    { id: 'drought', w: [0, 0, 2, 1], icon: '🏜️', title: 'Dry Spell',
-      text: 'No rain in weeks. The grass is crunchy and the blowouts are getting bigger.',
-      apply: (s) => { s.grass -= 10; s.water -= 8; } },
+    { id: 'drought', w: [2, 2, 3, 2], icon: '🏜️', title: 'Drought Monitor: Severe Drought',
+      text: 'No rain in weeks. The latest drought map shows your county in severe drought, like most of Nebraska cattle country. The grass is crunchy and the blowouts are getting bigger.',
+      apply: (s) => { s.grass -= 12; s.water -= 8; } },
     { id: 'fire', w: [0, 0, 1, 2], icon: '🔥', title: 'Prairie Fire',
-      text: 'Lightning sparked a grass fire on the north pasture. The volunteer fire department and your neighbors knocked it down, but you lost grass and fence.',
-      apply: (s) => { s.grass -= 18; s.fence -= 12; } },
-    { id: 'rally', w: [1, 1, 1, 2], icon: '📈', title: 'Cattle Market Rally',
-      text: 'Cattle prices jumped on the radio market report this morning. Good day to sell!',
+      text: 'Lightning sparked a grass fire on the north pasture. The volunteer fire department and your neighbors knocked it down, but without rain, burned pasture can take a year or more before cattle can graze it again.',
+      apply: (s) => { s.grass -= 22; s.fence -= 12; } },
+    { id: 'rally', w: [1, 1, 1, 2], icon: '📈', title: 'Record Cattle Prices',
+      text: 'With drought shrinking herds nationwide, there\'s a historic cattle shortage and beef prices are at record highs. Good day to sell!',
       apply: (s) => { s.market *= 1.08; } },
+    { id: 'packers', w: [1, 1, 1, 2], icon: '🏭', title: 'Few Buyers in the Stands',
+      text: 'Only a couple of big buyers showed up at the sale barn. With four meatpacking companies handling most U.S. beef, ranchers have fewer places to sell, and less competition means lower bids.',
+      apply: (s) => { s.market *= 0.94; } },
+    { id: 'sellout', w: [1, 1, 1, 1], icon: '🪧', title: 'A Neighbor Sells Out',
+      text: 'The family down the road is selling their cattle and listing the ranch. Nebraska lost nearly 2,900 beef cow operations between 2017 and 2022. They sell you their leftover hay cheap. (+8 bales)',
+      apply: (s) => { s.hay += 8; } },
     { id: 'slump', w: [1, 1, 1, 1], icon: '📉', title: 'Market Slump',
       text: 'Cattle futures dropped overnight. Buyers at the sale barn will be stingy.',
       apply: (s) => { s.market *= 0.93; } },
@@ -140,6 +150,11 @@
     'In the brand inspection area of western Nebraska, cattle are checked for brands whenever they\'re sold.',
     'Rotational grazing — moving cattle between pastures — keeps Sandhills grass healthy and the dunes in place.',
     'Many Sandhills ranches put up hay from wet "subirrigated" meadows in the valleys between the dunes.',
+    'America has lost roughly 4 in 10 cattle ranches since 1978. (Flatwater Free Press)',
+    'Nebraska went from 17,707 beef cow operations in 2017 to 14,834 in 2022. (USDA via Flatwater Free Press)',
+    'In late summer 2026, 86% of Nebraska\'s cattle were in areas hit by drought. (Nebraska Farm Bureau)',
+    'Ranch costs like fuel, equipment and labor have climbed faster than cattle prices for decades. (UNL BeefWatch)',
+    'Four meatpacking companies (Tyson, Cargill, National Beef and JBS) handle most U.S. beef processing. (Flatwater Free Press)',
   ];
 
   /* ---------------- Helpers ---------------- */
@@ -158,12 +173,12 @@
     const base = { cow: 1450, yearling: [1700, 1850, 1950, 2050][w], calf: [500, 850, 1200, 1700][w] }[type];
     return Math.round(base * s.market * (0.7 + 0.3 * (s.health / 100)));
   }
-  function netWorth(s) { return s.cash + s.cows * price('cow', s) + s.yearlings * price('yearling', s) + s.calves * price('calf', s) + s.hay * 60; }
+  function netWorth(s) { return s.cash + s.cows * price('cow', s) + s.yearlings * price('yearling', s) + (s.calves + (s.heifers || 0)) * price('calf', s) + s.hay * 60; }
 
   function newState(name) {
     return {
       v: 1, ranch: name || 'Rolling Hills Ranch', year: 1, day: 1, slot: 0,
-      cash: 8000, cows: 30, yearlings: 10, calves: 0, pending: 0, bornThisYear: 0,
+      cash: 8000, cows: 30, yearlings: 10, calves: 0, heifers: 0, pending: 0, bornThisYear: 0, decided: {},
       hay: 60, water: 70, grass: 55, fence: 70, health: 80, market: 1.0,
       done: {}, fedToday: false, coyoteWatch: false, bought: {}, event: null,
       log: [], stats: { sold: 0, revenue: 0, lost: 0, born: 0, tasks: 0, stars: 0, startWorth: 0 },
@@ -297,7 +312,58 @@
       <div class="event-card"><span class="e-icon">${ev.icon}</span><div><h3>${ev.title}</h3><p>${ev.text}</p></div></div>
       ${lines.length ? linesHTML(lines) : ''}
       <div class="modal-actions"><button class="btn btn-red btn-big" id="goDay" type="button">Pull on your boots 🥾</button></div>`, 'narrow');
-    $('goDay').onclick = closeModal;
+    $('goDay').onclick = () => { closeModal(); maybeDecision(); };
+  }
+
+  /* ---------------- Difficult decisions (from the news) ---------------- */
+  function maybeDecision() {
+    const s = S;
+    s.decided = s.decided || {};
+    const dayOfYear = s.day;
+    if (dayOfYear >= 16 && dayOfYear <= 18 && !s.decided.cull && s.cows >= 3 && (s.grass < 55 || s.event === 'drought' || dayOfYear === 18)) return cullDecision();
+    if (dayOfYear >= 23 && !s.decided.heifers && s.calves >= 2) return heiferDecision();
+  }
+
+  function choiceModal(icon, title, body, choices) {
+    const c = openModal(`
+      <h2>${icon} ${title}</h2>
+      ${body}
+      <div class="choice-btns">${choices.map((ch, i) => `<button class="btn ${i === 0 ? 'btn-gold' : 'btn-plain'}" data-ch="${i}" type="button"><b>${ch.label}</b><small>${ch.note}</small></button>`).join('')}</div>`, 'narrow');
+    c.querySelectorAll('[data-ch]').forEach((b) => (b.onclick = () => {
+      const msg = choices[+b.dataset.ch].go();
+      tidy(S); save(); render();
+      openModal(`<h2>${icon} Decision made</h2>${linesHTML([[msg]])}
+        <div class="modal-actions"><button class="btn btn-red" id="decOk" type="button">Back to work</button></div>`, 'narrow');
+      $('decOk').onclick = closeModal;
+    }));
+  }
+
+  function cullDecision() {
+    const s = S;
+    s.decided.cull = true;
+    const n = Math.min(5, s.cows - 1), p = Math.round(price('cow', s) * 0.95), hayCost = 15 * hayPrice(s);
+    choiceModal('🤔', 'Difficult Decision: Short Grass', `
+      <p>Like most Nebraska ranchers this summer, you're looking at short, dry pasture and a shrinking hay supply. The Nebraska Farm Bureau reports many ranchers are culling cows because there just isn't enough grass or feed.</p>
+      <p>Grass is at <b>${s.grass}%</b>. Hay is going for <b>${money(hayPrice(s))} a bale</b>. What will you do?</p>`, [
+      { label: `Cull ${n} cows`, note: `Sell them for about ${money(n * p)}. More grass for the rest (+18 Grass), but fewer calves next spring.`,
+        go: () => { s.cows -= n; s.cash += n * p; s.grass += 18; s.stats.sold += n; s.stats.revenue += n * p; log(`🤔 Culled ${n} cows during the drought`); return `You hauled ${n} cows to town for ${money(n * p)}. It hurts, but the pasture can breathe.`; } },
+      { label: 'Keep the herd, buy hay', note: `Spend ${money(hayCost)} on 15 bales to stretch the grass. Keeps your herd whole if you can afford it.`,
+        go: () => { s.cash -= hayCost; s.hay += 15; log('🤔 Kept the whole herd and bought drought hay'); return `You bought 15 bales for ${money(hayCost)} and kept every cow. Fingers crossed for rain.`; } },
+    ]);
+  }
+
+  function heiferDecision() {
+    const s = S;
+    s.decided.heifers = true;
+    const n = Math.min(6, Math.floor(s.calves / 2)) || 1, p = Math.round(price('calf', s) * 0.97);
+    choiceModal('🐮', 'Difficult Decision: Keep the Heifers?', `
+      <p>Cattle prices are high because the country is short on cattle. Normally that's when ranchers keep their best heifer calves to grow the herd. But with drought and high costs, many Nebraska ranchers can't afford to wait. Keeping a heifer means giving up a check today for a cow that won't have a calf until she's two.</p>
+      <p>You have <b>${n} good heifer calves</b> worth about <b>${money(p)}</b> each.</p>`, [
+      { label: `Keep ${n} heifers`, note: `They join your cow herd next year. No cash now.`,
+        go: () => { s.calves -= n; s.heifers = (s.heifers || 0) + n; log(`🐮 Kept ${n} heifers to rebuild the herd`); return `You kept ${n} heifers. They'll join the cow herd next year, if the ranch makes it that far.`; } },
+      { label: `Sell them for ${money(n * p)}`, note: 'Cash in your pocket for the big fall bank note.',
+        go: () => { s.calves -= n; s.cash += n * p; s.stats.sold += n; s.stats.revenue += n * p; log(`🐮 Sold ${n} heifer calves for ${money(n * p)}`); return `You sold ${n} heifers for ${money(n * p)}. The bank note looks a lot less scary.`; } },
+    ]);
   }
 
   function nextSlot() {
@@ -309,7 +375,8 @@
   function endDay() {
     const s = S, w = weekOf(s), ev = EVENTS.find((e) => e.id === s.event) || {};
     const lines = [];
-    s.cash -= DAILY_COST; lines.push([`⛽ Fuel, mineral & upkeep: −${money(DAILY_COST)}`]);
+    const cost = dailyCost(s);
+    s.cash -= cost; lines.push([`⛽ Fuel, mineral, equipment & upkeep: −${money(cost)}${w > 0 ? ' (input costs keep climbing)' : ''}`]);
 
     // food
     const grazeOk = s.grass >= 40 && (w === 1 || w === 2);
@@ -625,7 +692,7 @@
   function office() {
     const s = S;
     const items = [
-      { id: 'hay', icon: '🌾', name: 'Buy 10 bales of hay', cost: 800, note: 'Delivered from a neighbor\'s meadow. $80 a bale.', fn: () => { s.hay += 10; return '+10 bales of hay'; }, repeat: true },
+      { id: 'hay', icon: '🌾', name: 'Buy 10 bales of hay', cost: hayPrice(s) * 10, note: `${money(hayPrice(s))} a bale. Drought has cut Nebraska's hay supply, so prices climb as the year goes on.`, fn: () => { s.hay += 10; return '+10 bales of hay'; }, repeat: true },
       { id: 'vax', icon: '💉', name: 'Mineral & vaccine program', cost: 450, note: '+8 Herd Health. Once per day.', fn: () => { s.health += 8; return '+8 Health'; } },
       { id: 'hand', icon: '🧑‍🌾', name: 'Hire the neighbor kid', cost: 350, note: 'They\'ll fix fence for the day. +20 Fence. Once per day.', fn: () => { s.fence += 20; return '+20 Fence'; } },
       { id: 'cow', icon: '🐄', name: 'Buy a bred cow', cost: 2100, note: 'More cows means more calves next spring.', fn: () => { s.cows += 1; return '+1 cow'; }, repeat: true },
@@ -646,11 +713,13 @@
         <tr><td>${s.cows} cows × ~${money(price('cow', s))}</td><td>${money(s.cows * price('cow', s))}</td></tr>
         <tr><td>${s.yearlings} yearlings × ~${money(price('yearling', s))}</td><td>${money(s.yearlings * price('yearling', s))}</td></tr>
         <tr><td>${s.calves} calves × ~${money(price('calf', s))}</td><td>${money(s.calves * price('calf', s))}</td></tr>
+        ${s.heifers ? `<tr><td>${s.heifers} kept heifers × ~${money(price('calf', s))}</td><td>${money(s.heifers * price('calf', s))}</td></tr>` : ''}
         <tr><td>${s.hay} bales of hay × $60</td><td>${money(s.hay * 60)}</td></tr>
+        <tr><td>Daily operating costs</td><td>${money(dailyCost(s))}/day</td></tr>
         <tr class="total"><td>Ranch net worth</td><td>${money(netWorth(s))}</td></tr>
       </table>
       <p style="margin-top:10px">🏦 Next bank note: <b>${money(due)}</b> at sundown in ${daysToPay(s)} day${daysToPay(s) > 1 ? 's' : ''}. Remaining notes this year: ${PAYMENTS.slice(weekOf(s)).map((p) => money(Math.round(p * (1 + 0.25 * (s.year - 1))))).join(' → ')}</p>
-      <p class="fact">💡 Tip: calves are worth the most in the fall, but yearlings and cull cows can be sold any time to cover a bank note.</p>
+      <p class="fact">💡 UNL Extension suggests ranchers ask: "How many years out of 10 would this ranch make money?" Calves are worth the most in the fall, but yearlings and cull cows can be sold any time to cover a bank note.</p>
       <div class="modal-actions"><button class="btn btn-red" id="offClose" type="button">Back to work</button></div>`);
     c.querySelectorAll('[data-buy]').forEach((b) => (b.onclick = () => {
       const it = items.find((x) => x.id === b.dataset.buy);
@@ -690,14 +759,16 @@
         <h2>${grade[1]}</h2>
         <p>You made it through a full year on ${esc(s.ranch)} and paid every bank note. ${grade[2]}</p>
       </div>
+      <div class="event-card"><span class="e-icon">📰</span><div><h3>You beat the odds</h3><p>Nebraska lost nearly 2,900 beef cow operations between 2017 and 2022, and America has lost about 4 in 10 cattle ranches since 1978. Drought, rising costs and fewer buyers made this year hard. Your family's ranch is still standing.</p></div></div>
       ${summaryTable(s)}
       <div class="modal-actions">
         <button class="btn btn-red btn-big" id="yearTwo" type="button">Ranch another year ➜</button>
         <button class="btn btn-plain" id="restart" type="button">Start a new ranch</button>
       </div>`, 'narrow');
     $('yearTwo').onclick = () => {
-      s.year++; s.day = 1; s.phase = 'play'; s.bornThisYear = 0;
+      s.year++; s.day = 1; s.phase = 'play'; s.bornThisYear = 0; s.decided = {};
       s.yearlings += s.calves; s.calves = 0; s.pending = 0;
+      if (s.heifers) { s.cows += s.heifers; log(`🐮 ${s.heifers} heifers you kept joined the cow herd`); s.heifers = 0; }
       s.stats.startWorth = netWorth(s);
       log(`🎉 Year ${s.year} begins. Last year's calves are now yearlings.`);
       save();
@@ -714,6 +785,7 @@
         <h2>The Ranch Is Sold</h2>
         <p>${esc(s.overReason || '')} After ${s.day} days, ${esc(s.ranch)} goes on the auction block. Dad's old windmill keeps turning for somebody new.</p>
       </div>
+      <div class="event-card"><span class="e-icon">📰</span><div><h3>You're not alone</h3><p>This happens to real families. Nebraska went from 17,707 beef cow operations in 2017 to 14,834 in 2022. Drought, input costs that rise faster than cattle prices, and fewer meatpackers buying cattle keep pushing ranchers to sell out.</p></div></div>
       ${summaryTable(s)}
       <p class="fact">💡 Tip: sell yearlings before a note comes due, keep the herd fed and watered, and save your calves for the fall market.</p>
       <div class="modal-actions"><button class="btn btn-red btn-big" id="again" type="button">Try again 🤠</button></div>`, 'narrow');
@@ -734,6 +806,7 @@
         ['🍼 In spring, new calves are born overnight. Tag them with a Calving Check, and guard them with Coyote Watch.'],
         ['🔔 Sell cattle at the <b>Sale Barn</b>. Calves bring the most money in October.'],
         ['🏠 The <b>Ranch Office</b> lets you buy hay, vaccines and help any time without using up the clock.'],
+        ['📰 Like real Nebraska ranchers, you\'ll face <b>drought, rising costs and fewer buyers</b>, plus a few <b>difficult decisions</b>: cull cows when the grass runs short, or keep heifers to rebuild the herd?'],
       ])}
       <div class="modal-actions"><button class="btn btn-red" id="helpClose" type="button">Got it!</button></div>`, 'narrow');
     $('helpClose').onclick = closeModal;
@@ -756,6 +829,7 @@
         <div class="story">
           <p>📞 The phone call came on a gray winter morning. Dad was gone — and the ranch was yours.</p>
           <p>Four thousand acres of rolling Sandhills grass in Western Nebraska. Thirty mother cows, ten yearling steers, a creaky windmill, a red barn — and a loan at the bank in town.</p>
+          <p>Times are tough out here. Drought has dried up pastures and hay, costs keep climbing, and neighbors up and down the road have sold out. America has lost about 4 in 10 cattle ranches since 1978.</p>
           <p>Dad ran this place for forty years. Now it's up to you to keep it in the family. Work the ranch from sunup to sundown, make every bank payment, and see it through one full year.</p>
         </div>
         <div class="name-row">
