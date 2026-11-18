@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cornhusker Cattle Tycoon</title>
+<meta name="description" content="You just inherited your father's cattle ranch in the Sandhills of Western Nebraska. Work the ranch from sunup to sundown and keep it in business.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div id="app">
+  <header class="hud" id="hud"></header>
+
+  <div class="scene" id="scene" aria-label="Your Sandhills ranch">
+    <div class="scene-svg" id="sceneSvg"></div>
+    <div class="scene-clock" id="sceneClock"></div>
+    <div class="scene-event" id="sceneEvent"></div>
+  </div>
+
+  <main class="panel" id="panel">
+    <div class="slot-head">
+      <h2 id="slotTitle">Loading the ranch…</h2>
+      <ol class="slot-track" id="slotTrack" aria-label="Time of day"></ol>
+    </div>
+    <p class="slot-sub" id="slotSub"></p>
+    <div class="tasks" id="tasks"></div>
+    <div class="panel-actions">
+      <button class="btn btn-wood" id="officeBtn" type="button">🏠 Ranch Office</button>
+      <button class="btn btn-plain" id="helpBtn" type="button">❓ How to Play</button>
+      <button class="btn btn-plain" id="newBtn" type="button">↺ New Ranch</button>
+    </div>
+    <section class="journal">
+      <h3>📓 Ranch Journal</h3>
+      <ul id="journal"></ul>
+    </section>
+  </main>
+
+  <footer class="foot">Cornhusker Cattle Tycoon · A Sandhills ranching game · Go Big Red!</footer>
+</div>
+
+<div class="modal hidden" id="modal" role="dialog" aria-modal="true">
+  <div class="modal-card" id="modalCard"></div>
+</div>
+
+<script src="js/scene.js"></script>
+<script src="js/minigames.js"></script>
+<script src="js/game.js"></script>
+</body>
+</html>
