@@ -252,6 +252,12 @@ button { font: inherit; color: inherit; }
 .mg-top { display: flex; gap: 12px; align-items: center; margin-bottom: 10px; }
 .mg-icon { font-size: 2.4rem; line-height: 1; }
 .mg-top h2 { margin: 0; }
+.mg-tools { margin-left: auto; display: flex; gap: 8px; flex-shrink: 0; }
+.mg-tools .btn { padding: 7px 12px; font-size: .9rem; }
+.mg-start.hidden { display: none; }
+.mg-pausebox { background: rgba(20, 12, 4, .55); }
+body.paused .scene *, body.paused .scene::after { animation-play-state: paused !important; }
+@media (max-width: 640px) { .mg-top { flex-wrap: wrap; } .mg-tools { margin-left: 0; width: 100%; } }
 .mg-top p { margin: 0; color: var(--ink-soft); }
 .mg-stage { position: relative; }
 .mg-canvas {

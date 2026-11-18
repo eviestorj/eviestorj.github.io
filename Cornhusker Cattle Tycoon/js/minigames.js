@@ -108,17 +108,35 @@
     ctx.restore();
   }
 
-  function drawCoyote(ctx, x, y, s, dir, phase) {
+  function drawCoyote(ctx, x, y, s, dir, phase, snarl) {
     ctx.save(); ctx.translate(x, y); ctx.scale(s * dir, s);
     ctx.lineWidth = 2.4 / s; ctx.lineJoin = 'round';
-    const fur = '#9c8a6e';
-    ctx.beginPath(); ctx.moveTo(-26, -10); ctx.quadraticCurveTo(-48, -4, -50, 8); ctx.quadraticCurveTo(-36, 2, -24, -2); ctx.closePath(); fs(ctx, '#857459');
-    [-16, -8, 12, 20].forEach((lx, i) => { const sw = Math.sin(phase + (i % 2 ? Math.PI : 0)) * 5; rr(ctx, lx - 2.5 + sw, 0, 5, 18, 2); fs(ctx, fur); });
-    ell(ctx, 0, -6, 28, 11); fs(ctx, fur);
-    ctx.beginPath(); ctx.moveTo(22, -14); ctx.lineTo(28, -30); ctx.lineTo(32, -16); ctx.closePath(); fs(ctx, fur);
-    ctx.beginPath(); ctx.moveTo(30, -16); ctx.lineTo(38, -30); ctx.lineTo(40, -14); ctx.closePath(); fs(ctx, fur);
-    ctx.beginPath(); ctx.moveTo(22, -18); ctx.lineTo(52, -8); ctx.lineTo(24, -2); ctx.closePath(); fs(ctx, '#b3a283');
-    ctx.fillStyle = '#ffe14d'; ell(ctx, 34, -13, 2.5, 2.5); ctx.fill();
+    const fur = '#7d6c55', dark = '#4e4233';
+    // bushy tail
+    ctx.beginPath(); ctx.moveTo(-26, -10); ctx.quadraticCurveTo(-52, -14, -56, 6); ctx.quadraticCurveTo(-38, 4, -24, -2); ctx.closePath(); fs(ctx, dark);
+    // legs (lean and long)
+    [-16, -8, 12, 20].forEach((lx, i) => { const sw = Math.sin(phase + (i % 2 ? Math.PI : 0)) * 7; rr(ctx, lx - 2.5 + sw, 0, 5, 22, 2); fs(ctx, fur); });
+    // body with raised, spiky hackles
+    ell(ctx, 0, -6, 29, 11); fs(ctx, fur);
+    ctx.beginPath(); ctx.moveTo(-14, -15);
+    for (let i = 0; i < 6; i++) { ctx.lineTo(-10 + i * 5, -25 - (i % 2) * 4); ctx.lineTo(-7 + i * 5, -16); }
+    ctx.closePath(); fs(ctx, dark);
+    // head, pinned-back ears
+    ctx.beginPath(); ctx.moveTo(20, -14); ctx.lineTo(24, -32); ctx.lineTo(32, -18); ctx.closePath(); fs(ctx, dark);
+    ctx.beginPath(); ctx.moveTo(28, -18); ctx.lineTo(34, -34); ctx.lineTo(40, -16); ctx.closePath(); fs(ctx, dark);
+    ell(ctx, 32, -12, 11, 9); fs(ctx, fur);
+    // snout: upper jaw + open lower jaw when snarling
+    ctx.beginPath(); ctx.moveTo(34, -18); ctx.lineTo(58, -10); ctx.lineTo(36, -6); ctx.closePath(); fs(ctx, '#9a8a6d');
+    if (snarl) {
+      ctx.beginPath(); ctx.moveTo(36, -5); ctx.lineTo(54, 2); ctx.lineTo(34, 2); ctx.closePath(); fs(ctx, '#8a1d1d');
+      ctx.fillStyle = '#fffbea';
+      for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.moveTo(40 + i * 4, -8); ctx.lineTo(42 + i * 4, -3); ctx.lineTo(44 + i * 4, -8); ctx.fill(); }
+      for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.moveTo(40 + i * 4, 2); ctx.lineTo(42 + i * 4, -3); ctx.lineTo(44 + i * 4, 2); ctx.fill(); }
+    }
+    ctx.fillStyle = '#111'; ell(ctx, 58, -10, 2.5, 2.5); ctx.fill();
+    // angry glowing eye + brow
+    ctx.fillStyle = '#ff3b1f'; ell(ctx, 36, -15, 3, 3); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(30, -21); ctx.lineTo(42, -17); ctx.lineWidth = 3 / s; ctx.strokeStyle = '#1a120a'; ctx.stroke();
     ctx.restore();
   }
 
@@ -229,18 +247,33 @@
   /* ================= Framework ================= */
   const defs = {};
 
-  function start(id, params, host, onDone) {
+  let active = null; // only one mini-game may listen for input at a time
+  function start(id, params, host, onDone, onExit) {
+    if (active) active();
     const def = defs[id];
     host.innerHTML = `
       <div class="mg">
-        <div class="mg-top"><span class="mg-icon">${def.icon}</span><div><h2>${def.title}</h2><p>${def.blurb}</p></div></div>
+        <div class="mg-top"><span class="mg-icon">${def.icon}</span><div><h2>${def.title}</h2><p>${def.blurb}</p></div>
+          <div class="mg-tools">
+            <button class="btn mg-pause" type="button" disabled>⏸ Pause</button>
+            <button class="btn mg-exit" type="button">✖ Exit</button>
+          </div>
+        </div>
         <div class="mg-stage">
           <canvas class="mg-canvas"></canvas>
           <div class="mg-start"><div class="mg-start-card">
             <h3>How to play</h3>
             <p>${def.howto}</p>
-            <p class="mg-controls">🎮 ${def.controls}</p>
+            <p class="mg-controls">🎮 ${def.controls} · ⏸ P or Esc pauses</p>
             <button class="btn btn-red btn-big mg-go" type="button">Let's go!</button>
+          </div></div>
+          <div class="mg-start mg-pausebox hidden"><div class="mg-start-card">
+            <h3 class="mg-pause-title">⏸ Paused</h3>
+            <p class="mg-pause-msg">Take a breather. The clock is stopped.</p>
+            <div class="modal-actions">
+              <button class="btn btn-red btn-big mg-resume" type="button">▶ Resume</button>
+              <button class="btn btn-plain mg-quit" type="button">✖ Exit chore</button>
+            </div>
           </div></div>
         </div>
       </div>`;
@@ -309,6 +342,11 @@
     let e_isMouse = true;
     const onType = (e) => { e_isMouse = e.pointerType === 'mouse'; };
     const onKey = (e) => {
+      if ((e.key === 'Escape' || e.key === 'p' || e.key === 'P') && !g.over && g.started) {
+        e.preventDefault();
+        if (g.paused) resume(); else pause();
+        return;
+      }
       if (!g.running) return;
       const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
       if ([' ', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(k)) e.preventDefault();
@@ -324,7 +362,49 @@
     canvas.addEventListener('pointerleave', onLeave);
     window.addEventListener('keydown', onKey);
     window.addEventListener('keyup', onKeyUp);
+    const onHide = () => { if (document.hidden && g.running) pause(); };
+    document.addEventListener('visibilitychange', onHide);
+
+    const pauseBox = host.querySelector('.mg-pausebox');
+    const pauseBtn = host.querySelector('.mg-pause');
+    function pause(msg) {
+      if (g.over || !g.started) return;
+      g.paused = true; g.running = false;
+      cancelAnimationFrame(raf);
+      g.keys = {}; g.pointer.down = false;
+      host.querySelector('.mg-pause-title').textContent = msg ? '✖ Leave this chore?' : '⏸ Paused';
+      host.querySelector('.mg-pause-msg').textContent = msg || 'Take a breather. The clock is stopped.';
+      pauseBox.classList.remove('hidden');
+      pauseBtn.textContent = '▶ Resume';
+      host.querySelector(msg ? '.mg-quit' : '.mg-resume').focus();
+    }
+    function resume() {
+      if (g.over || !g.paused) return;
+      g.paused = false; g.running = true; last = 0;
+      pauseBox.classList.add('hidden');
+      pauseBtn.textContent = '⏸ Pause';
+      pauseBtn.blur();
+      raf = requestAnimationFrame(frame);
+    }
+    function exit() {
+      if (g.over) return;
+      g.over = true; g.running = false;
+      cancelAnimationFrame(raf);
+      detach();
+      if (onExit) onExit();
+    }
+    pauseBtn.addEventListener('click', () => (g.paused ? resume() : pause()));
+    host.querySelector('.mg-resume').addEventListener('click', resume);
+    host.querySelector('.mg-quit').addEventListener('click', exit);
+    host.querySelector('.mg-exit').addEventListener('click', () => {
+      if (!g.started) return exit();
+      pause("You won't earn anything from this chore, but this part of the day won't be used up either.");
+    });
+
+    active = () => { g.over = true; g.running = false; cancelAnimationFrame(raf); detach(); };
     function detach() {
+      if (active) active = null;
+      document.removeEventListener('visibilitychange', onHide);
       canvas.removeEventListener('pointerdown', onType);
       canvas.removeEventListener('pointerdown', onDown);
       canvas.removeEventListener('pointermove', onMove);
@@ -339,6 +419,7 @@
       g.over = true; g.running = false;
       cancelAnimationFrame(raf);
       detach();
+      host.querySelectorAll('.mg-tools .btn').forEach((b) => (b.disabled = true));
       paint();
       const res = def.result(g);
       res.score = clamp(res.score, 0, 1);
@@ -350,9 +431,10 @@
     const go = host.querySelector('.mg-go');
     go.focus();
     go.addEventListener('click', () => {
-      host.querySelector('.mg-start').remove();
+      go.closest('.mg-start').remove();
       go.blur();
-      g.running = true; last = 0;
+      pauseBtn.disabled = false;
+      g.started = true; g.running = true; last = 0;
       raf = requestAnimationFrame(frame);
     });
   }
@@ -789,7 +871,7 @@
           if (free.length) {
             const mid = (s.x0 + s.x1) / 2;
             free.sort((a, b) => Math.abs(a.x - mid) - Math.abs(b.x - mid));
-            free[0].state = 'seek'; free[0].seg = s; free[0].tx = mid;
+            free[0].state = 'seek'; free[0].seg = s; free[0].tx = mid; free[0].notice = 0;
           }
         }
       });
@@ -797,11 +879,15 @@
         if (c.state === 'graze') {
           c.wanderT -= dt;
           if (c.wanderT <= 0) { c.wanderT = R(1.5, 3.5); c.tx = clamp(c.x + R(-90, 90), 50, 750); }
-          if (c.tx != null) { const d = c.tx - c.x; if (Math.abs(d) > 3) { c.x += Math.sign(d) * 25 * dt; c.dir = Math.sign(d); c.lp += dt * 5; } }
+          if (c.tx != null) { const d = c.tx - c.x; if (Math.abs(d) > 3) { c.x += Math.sign(d) * 18 * dt; c.dir = Math.sign(d); c.lp += dt * 4; } }
         } else if (c.state === 'seek') {
           if (!c.seg.broken) { c.state = 'graze'; c.seg = null; c.tx = null; return; }
+          // she takes a moment to notice the gap, then ambles over slowly
+          c.notice = (c.notice || 0) + dt;
+          if (c.notice < 1.8) return;
           const d = c.tx - c.x;
-          if (Math.abs(d) > 4) { c.x += Math.sign(d) * 50 * dt; c.dir = Math.sign(d); c.lp += dt * 8; }
+          if (Math.abs(d) > 4) { c.x += Math.sign(d) * 26 * dt; c.dir = Math.sign(d); c.lp += dt * 4; }
+          else if (c.notice < 4) return; // she sniffs at the gap before pushing through
           else { c.state = 'escape'; g.escapes++; g.pop('She got out! 🐄💨', c.x, 170, '#ffb8ad'); }
         } else if (c.state === 'escape') {
           c.y += 90 * dt; c.lp += dt * 9;
@@ -967,58 +1053,83 @@
   defs.coyote = {
     icon: '🐺', title: 'Coyote Watch', duration: 30,
     blurb: 'Coyotes slip in after dark looking for young calves. Keep watch with your spotlight.',
-    howto: 'Glowing eyes in the dark mean a coyote is creeping toward the herd. Sweep your <b>spotlight</b> and <b>click a coyote</b> to scare it off before it reaches the calves.',
+    howto: 'Glowing red eyes in the dark mean the pack is closing in on the herd — and once they\'re close, they <b>rush</b>. Sweep your <b>spotlight</b> and <b>click a coyote</b> to scare it off before it reaches the calves.',
     controls: 'Move the mouse to aim the spotlight · click / tap coyotes',
     init(g) {
-      g.coyotes = []; g.next = 1; g.scared = 0; g.reached = 0;
+      g.coyotes = []; g.next = 0.8; g.scared = 0; g.reached = 0; g.flash = 0; g.shake = 0; g.danger = 0;
       g.stars = [...Array(50)].map(() => ({ x: R(0, W), y: R(0, 180), r: R(0.8, 2) }));
       g.pointer.x = 400; g.pointer.y = 300;
+    },
+    spawn(g) {
+      const left = Math.random() < 0.5;
+      g.coyotes.push({ x: left ? -30 : W + 30, y: R(235, 335), sp: R(58, 82) + g.t * 1.4, state: 'creep', dir: left ? 1 : -1, lp: 0, blink: R(0, 5), snarl: false });
+      if (Math.random() < 0.45) g.pop(pick(['Aooooo! 🌕', 'Yip-yip-yip!', '*growl*']), left ? 90 : W - 90, R(170, 230), '#c9b8ff');
     },
     update(g, dt) {
       g.next -= dt;
       if (g.next <= 0) {
-        g.next = Math.max(0.9, 2 - g.t * 0.035);
-        const left = Math.random() < 0.5;
-        g.coyotes.push({ x: left ? -30 : W + 30, y: R(235, 330), sp: R(38, 60) + g.t * 0.8, state: 'creep', dir: left ? 1 : -1, lp: 0, blink: R(0, 5) });
+        g.next = Math.max(0.75, 1.7 - g.t * 0.035);
+        this.spawn(g);
+        if (g.t > 10 && Math.random() < 0.3) this.spawn(g); // the pack starts working together
       }
+      g.flash = Math.max(0, g.flash - dt * 1.6); g.shake = Math.max(0, g.shake - dt);
+      let danger = 0;
       g.coyotes.forEach((c) => {
         if (c.state === 'creep') {
           const dx = 400 - c.x, dy = 360 - c.y, d = Math.hypot(dx, dy);
-          c.x += (dx / d) * c.sp * dt; c.y += (dy / d) * c.sp * dt; c.dir = dx > 0 ? 1 : -1; c.lp += dt * 6;
-          if (d < 75) { c.state = 'flee'; c.dir *= -1; g.reached++; g.pop('A coyote got in! 😱', c.x, c.y - 70, '#ffb8ad'); }
-        } else { c.x += c.dir * 260 * dt; c.lp += dt * 14; }
+          c.snarl = d < 190;
+          const lunge = c.snarl ? 1.6 : 1; // they rush in once they're close
+          c.x += (dx / d) * c.sp * lunge * dt; c.y += (dy / d) * c.sp * lunge * dt; c.dir = dx > 0 ? 1 : -1; c.lp += dt * (c.snarl ? 12 : 7);
+          danger = Math.max(danger, 1 - d / 320);
+          if (d < 75) { c.state = 'flee'; c.dir *= -1; g.reached++; g.flash = 1; g.shake = 0.35; g.pop('A coyote got in! 😱', c.x, c.y - 70, '#ffb8ad'); }
+        } else { c.x += c.dir * 280 * dt; c.lp += dt * 16; }
       });
+      g.danger += (Math.max(0, danger) - g.danger) * Math.min(1, dt * 4);
       g.coyotes = g.coyotes.filter((c) => c.x > -80 && c.x < W + 80);
     },
     down(g, x, y) {
-      const c = g.coyotes.find((c) => c.state === 'creep' && dist(x, y, c.x, c.y - 10) < 48);
-      if (c) { c.state = 'flee'; c.dir = c.x < 400 ? -1 : 1; g.scared++; g.pop('Yip! Scram! 🔦', c.x, c.y - 60, '#c9f2b0'); }
+      const c = g.coyotes.find((c) => c.state === 'creep' && dist(x, y, c.x + c.dir * 10, c.y - 10) < 56);
+      if (c) { c.state = 'flee'; c.snarl = false; c.dir = c.x < 400 ? -1 : 1; g.scared++; g.pop('Yelp! Scram! 🔦', c.x, c.y - 60, '#c9f2b0'); }
     },
     draw(g, ctx) {
-      sky(ctx, '#0d1030', '#2b2560');
+      ctx.save();
+      if (g.shake) ctx.translate(R(-6, 6) * g.shake * 3, R(-6, 6) * g.shake * 3);
+      sky(ctx, '#05060f', '#1a1236');
       g.stars.forEach((s) => { ctx.fillStyle = '#fff8d8'; ell(ctx, s.x, s.y, s.r, s.r); ctx.fill(); });
-      ell(ctx, 680, 70, 28, 28); ctx.lineWidth = 3; fs(ctx, '#fff4cc');
-      hillBand(ctx, 200, 18, 0.008, 1, '#2c3a2a');
-      hillBand(ctx, 240, 12, 0.012, 4, '#33452e');
-      ctx.fillStyle = '#3a5233'; ctx.fillRect(0, 255, W, H);
-      // herd huddle
-      drawCow(ctx, 340, 365, 0.9, { dir: 1, breed: 'angus' });
-      drawCow(ctx, 470, 360, 0.9, { dir: -1, breed: 'baldy' });
-      drawCow(ctx, 400, 390, 0.55, { dir: 1, breed: 'angus' });
-      drawCow(ctx, 445, 400, 0.5, { dir: -1, breed: 'hereford' });
-      drawCow(ctx, 360, 405, 0.5, { dir: 1, breed: 'baldy' });
-      g.coyotes.forEach((c) => drawCoyote(ctx, c.x, c.y, 0.9, c.dir, c.lp));
-      darkness(ctx, g.pointer.x, g.pointer.y, 120, 'rgba(4,6,22,0.86)');
-      // glowing eyes on top of the dark
+      // blood-orange moon behind a drifting cloud
+      ell(ctx, 680, 80, 34, 34); ctx.lineWidth = 3; fs(ctx, '#f4a259');
+      ctx.fillStyle = 'rgba(20,16,40,.85)'; ell(ctx, 650 + Math.sin(g.t * 0.3) * 30, 92, 60, 14); ctx.fill();
+      hillBand(ctx, 200, 18, 0.008, 1, '#141c16');
+      hillBand(ctx, 240, 12, 0.012, 4, '#1c2a1d');
+      ctx.fillStyle = '#243522'; ctx.fillRect(0, 255, W, H);
+      // nervous herd: they tremble when coyotes get close
+      const j = () => (g.danger > 0.35 ? R(-1.5, 1.5) * g.danger * 2 : 0);
+      drawCow(ctx, 340 + j(), 365, 0.9, { dir: 1, breed: 'angus' });
+      drawCow(ctx, 470 + j(), 360, 0.9, { dir: -1, breed: 'baldy' });
+      drawCow(ctx, 400 + j(), 390, 0.55, { dir: 1, breed: 'angus' });
+      drawCow(ctx, 445 + j(), 400, 0.5, { dir: -1, breed: 'hereford' });
+      drawCow(ctx, 360 + j(), 405, 0.5, { dir: 1, breed: 'baldy' });
+      g.coyotes.forEach((c) => drawCoyote(ctx, c.x, c.y, 1.05, c.dir, c.lp, c.snarl));
+      darkness(ctx, g.pointer.x + R(-1, 1), g.pointer.y + R(-1, 1), 115, 'rgba(2,3,12,0.92)');
+      // glowing red eyes on top of the dark — they burn brighter as they get closer
       g.coyotes.forEach((c) => {
         if (c.state !== 'creep') return;
-        if (Math.sin(g.t * 3 + c.blink) > 0.93) return;
-        const ex = c.x + c.dir * 31, ey = c.y - 12;
-        ctx.fillStyle = '#ffe14d'; ctx.shadowColor = '#ffe14d'; ctx.shadowBlur = 10;
-        ell(ctx, ex, ey, 3, 3); ctx.fill(); ell(ctx, ex - c.dir * 7, ey, 3, 3); ctx.fill();
+        if (Math.sin(g.t * 3 + c.blink) > 0.95) return;
+        const d = dist(c.x, c.y, 400, 360), r = 3 + clamp(1 - d / 400, 0, 1) * 2.5;
+        const ex = c.x + c.dir * 38, ey = c.y - 15;
+        ctx.fillStyle = c.snarl ? '#ff2a12' : '#ff8a1f'; ctx.shadowColor = '#ff3b1f'; ctx.shadowBlur = 16;
+        ell(ctx, ex, ey, r, r * 0.8); ctx.fill(); ell(ctx, ex - c.dir * 9, ey, r, r * 0.8); ctx.fill();
         ctx.shadowBlur = 0;
       });
-      ctx.strokeStyle = 'rgba(255,240,180,.5)'; ctx.lineWidth = 2; ell(ctx, g.pointer.x, g.pointer.y, 100, 100); ctx.stroke();
+      ctx.strokeStyle = 'rgba(255,240,180,.5)'; ctx.lineWidth = 2; ell(ctx, g.pointer.x, g.pointer.y, 95, 95); ctx.stroke();
+      ctx.restore();
+      // red danger vignette and a flash when one gets through
+      if (g.danger > 0.2 || g.flash) {
+        const a = Math.max(g.danger * 0.35 * (0.75 + 0.25 * Math.sin(g.t * 9)), g.flash * 0.45);
+        const v = ctx.createRadialGradient(W / 2, H / 2, H * 0.35, W / 2, H / 2, W * 0.65);
+        v.addColorStop(0, 'rgba(200,0,0,0)'); v.addColorStop(1, `rgba(200,0,0,${a.toFixed(3)})`);
+        ctx.fillStyle = v; ctx.fillRect(0, 0, W, H);
+      }
     },
     hud(g) { return `🔦 Scared off: ${g.scared} · Got in: ${g.reached}`; },
     doneText(g) { return g.reached === 0 ? 'Calves are safe! 🌙' : 'Night watch over'; },

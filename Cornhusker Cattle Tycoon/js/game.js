@@ -505,7 +505,18 @@
       hay: {}, fence: {}, coyote: {},
     }[id];
     const c = openModal('', 'wide');
-    MiniGames.start(id, params, c, (res) => finishTask(id, res));
+    MiniGames.start(id, params, c, (res) => finishTask(id, res), exitedTask);
+  }
+
+  function exitedTask() {
+    closeModal();
+    flash('You left the chore. Pick another one, or try again!');
+  }
+  function flash(text) {
+    const sub = $('slotSub');
+    sub.textContent = '↩ ' + text;
+    clearTimeout(flash.t);
+    flash.t = setTimeout(() => { if (S) sub.textContent = SLOTS[Math.min(S.slot, 3)].sub; }, 4000);
   }
 
   function stars(score) { return score >= 0.85 ? 3 : score >= 0.5 ? 2 : score > 0.05 ? 1 : 0; }
@@ -619,7 +630,7 @@
       const names = { cow: 'cows', yearling: 'yearlings', calf: 'calves' };
       const lots = Object.keys(sel).filter((t) => sel[t] > 0).map((t) => ({ type: t, count: sel[t], base: price(t, s), label: `${sel[t]} ${names[t]}` }));
       const box = openModal('', 'wide');
-      MiniGames.start('sale', { lots }, box, (res) => finishSale(res));
+      MiniGames.start('sale', { lots }, box, (res) => finishSale(res), () => { closeModal(); flash('You hauled the cattle back home unsold.'); });
     };
     upd();
   }
@@ -648,9 +659,11 @@
     const qs = [...QUIZ].sort(() => Math.random() - 0.5).slice(0, 4);
     let i = 0, right = 0;
     const intro = openModal(`
-      <div class="mg-top"><span class="mg-icon">🩺</span><div><h2>Herd Health Check</h2><p>Walk through the herd and figure out what's wrong. Each correct call treats the animal (+4 Health, $40 in vet supplies).</p></div></div>
+      <div class="mg-top"><span class="mg-icon">🩺</span><div><h2>Herd Health Check</h2><p>Walk through the herd and figure out what's wrong. Each correct call treats the animal (+4 Health, $40 in vet supplies).</p></div>
+        <div class="mg-tools"><button class="btn" id="quizExit" type="button">✖ Exit</button></div></div>
       <div id="quizBox"></div>`);
     const box = intro.querySelector('#quizBox');
+    $('quizExit').onclick = exitedTask;
     function show() {
       const q = qs[i];
       box.innerHTML = `
@@ -864,6 +877,41 @@
     runTask(b.dataset.task);
   });
   $('officeBtn').onclick = () => S && office();
+
+  // Pause menu for the main game
+  let pauseOpen = false;
+  function pauseGame() {
+    if (!S || !modal.classList.contains('hidden')) return;
+    pauseOpen = true;
+    document.body.classList.add('paused');
+    openModal(`
+      <div class="title-card">
+        <div style="font-size:3rem">⏸</div>
+        <h2>Game Paused</h2>
+        <p>The ranch will wait for you. Day ${S.day}, ${SLOTS[Math.min(S.slot, 3)].name.toLowerCase()} on ${esc(S.ranch)}.</p>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-red btn-big" id="pResume" type="button">▶ Resume</button>
+        <button class="btn btn-plain" id="pHelp" type="button">❓ How to Play</button>
+        <button class="btn btn-plain" id="pQuit" type="button">🏠 Save & quit to title</button>
+      </div>
+      <p class="fact" style="text-align:center">Your progress saves automatically. Press P or Esc to resume.</p>`, 'narrow');
+    $('pResume').onclick = resumeGame;
+    $('pHelp').onclick = () => { resumeGame(); help(); };
+    $('pQuit').onclick = () => { resumeGame(); save(); titleScreen(); };
+  }
+  function resumeGame() {
+    pauseOpen = false;
+    document.body.classList.remove('paused');
+    closeModal();
+  }
+  $('pauseBtn').onclick = pauseGame;
+  window.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' && e.key !== 'p' && e.key !== 'P') return;
+    if (e.target && e.target.tagName === 'INPUT') return;
+    if (pauseOpen) { e.preventDefault(); resumeGame(); }
+    else if (S && modal.classList.contains('hidden')) { e.preventDefault(); pauseGame(); }
+  });
   $('helpBtn').onclick = help;
   $('newBtn').onclick = () => {
     if (!S) return;
