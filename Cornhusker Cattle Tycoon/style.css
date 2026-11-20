@@ -230,6 +230,7 @@ button { font: inherit; color: inherit; }
 }
 .news h2 { font-size: 1.25rem; color: var(--red); margin-bottom: 6px; }
 .news p { margin: 0; font-weight: 600; line-height: 1.55; }
+.news .news-credit { font-style: italic; color: var(--ink-soft); margin-bottom: 8px; }
 .news .news-src { margin-top: 8px; font-size: .82rem; color: var(--ink-soft); }
 .news a { color: var(--red-dark); font-weight: 800; }
 .choice-btns { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; margin-top: 12px; }
